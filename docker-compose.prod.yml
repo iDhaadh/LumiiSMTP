@@ -46,11 +46,11 @@ services:
       DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
       BOUNCE_EMAIL: ${BOUNCE_EMAIL}
       TRACKING_DOMAIN: ${TRACKING_DOMAIN}
-      SMTP_TLS_CERT: /certs/fullchain.pem
-      SMTP_TLS_KEY: /certs/privkey.pem
+      SMTP_TLS_CERT: /etc/letsencrypt/live/${DOMAIN}/fullchain.pem
+      SMTP_TLS_KEY: /etc/letsencrypt/live/${DOMAIN}/privkey.pem
       PORT: 3000
     volumes:
-      - /opt/lumii-smtp/certs:/certs:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       postgres:
         condition: service_healthy
