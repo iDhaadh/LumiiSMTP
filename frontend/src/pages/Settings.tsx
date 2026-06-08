@@ -68,7 +68,7 @@ export default function SettingsPage() {
           <dl className="space-y-3 text-sm font-mono">
             <div className="flex justify-between">
               <dt className="text-gray-500 font-sans">Hostname</dt>
-              <dd className="text-gray-900">mail.yourdomain.com</dd>
+              <dd className="text-gray-900">{import.meta.env.VITE_SMTP_HOST ?? window.location.hostname}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-500 font-sans">Port</dt>

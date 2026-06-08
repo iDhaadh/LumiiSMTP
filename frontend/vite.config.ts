@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true,
+    allowedHosts: ['lumiismtp.madifushiprivateisland.com'],
     proxy: {
       '/api': { target: process.env.VITE_API_URL ?? 'http://localhost:3000', changeOrigin: true },
       '/t': { target: process.env.VITE_API_URL ?? 'http://localhost:3000', changeOrigin: true },
