@@ -1,4 +1,5 @@
 import dns from 'dns/promises';
+import { Readable } from 'stream';
 import { prisma } from '../db/client';
 import { logger } from '../db/logger';
 import { signEmailWithDkim } from '../services/dkim';
@@ -60,7 +61,7 @@ function sendRaw(
 
     conn.connect(() => {
       const afterAuth = () => {
-        conn.send({ from, to: [to] }, rawEmail, (err: Error | null) => {
+        conn.send({ from, to: [to] }, Readable.from(rawEmail), (err: Error | null) => {
           done(err ?? undefined);
         });
       };
