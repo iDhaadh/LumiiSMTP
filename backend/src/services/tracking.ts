@@ -9,6 +9,18 @@ export async function injectTracking(
   const parsed = await simpleParser(rawEmail);
   if (!parsed.html) return rawEmail;
 
+  // ── Guard: skip multipart emails entirely ─────────────────────────────────
+  // Rebuilding multipart MIME through MailComposer + nodemailer raw causes the
+  // whole message to be wrapped as the body of an outer envelope message,
+  // breaking subject, attachments and formatting in mail clients.
+  // For any email that carries attachments or has a multipart Content-Type we
+  // return the original bytes untouched.
+  if ((parsed.attachments ?? []).length > 0) return rawEmail;
+
+  const rawStr = rawEmail.toString('utf8');
+  if (/^content-type:\s*multipart\//im.test(rawStr)) return rawEmail;
+
+  // ── Inject tracking into simple (single-part) HTML emails ─────────────────
   const $ = cheerio.load(parsed.html);
 
   // Rewrite links for click tracking
@@ -22,57 +34,17 @@ export async function injectTracking(
     );
   });
 
-  // Inject open tracking pixel before </body>
+  // Inject open-tracking pixel before </body>
   const pixel = `<img src="https://${trackingDomain}/t/open/${emailId}" width="1" height="1" style="display:none" alt="" />`;
   $('body').append(pixel);
 
   const modifiedHtml = $.html();
 
-  // Rebuild email preserving full MIME structure (attachments, multipart, etc.)
-  // using nodemailer MailComposer so we don't corrupt boundaries
-  try {
-    const { default: MailComposer } = await import('nodemailer/lib/mail-composer');
+  // Splice modified HTML body back into the raw message, preserving all
+  // original headers verbatim (no MIME rebuild, no nodemailer wrapping risk).
+  const sep = rawStr.indexOf('\r\n\r\n');
+  if (sep === -1) return rawEmail; // malformed – bail out safely
 
-    const skipHeaders = new Set([
-      'from','to','cc','bcc','subject','content-type','mime-version',
-      'message-id','date','reply-to','content-transfer-encoding',
-    ]);
-    const extraHeaders: Record<string, string> = {};
-    parsed.headers?.forEach((value, key) => {
-      if (!skipHeaders.has(key.toLowerCase())) {
-        extraHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
-      }
-    });
-
-    const attachments = (parsed.attachments ?? []).map((att) => ({
-      filename: att.filename ?? 'attachment',
-      content: att.content,
-      contentType: att.contentType,
-      contentDisposition: att.contentDisposition as 'attachment' | 'inline',
-      cid: att.cid,
-    }));
-
-    const composer = new MailComposer({
-      from: parsed.from?.text,
-      to: Array.isArray(parsed.to) ? parsed.to.map((a) => a.text).join(', ') : parsed.to?.text,
-      cc: Array.isArray(parsed.cc) ? parsed.cc.map((a) => a.text).join(', ') : parsed.cc?.text,
-      subject: parsed.subject,
-      html: modifiedHtml,
-      text: parsed.text ?? undefined,
-      attachments,
-      headers: extraHeaders,
-      date: parsed.date,
-      messageId: parsed.messageId ?? undefined,
-    } as any);
-
-    return new Promise<Buffer>((resolve, reject) => {
-      composer.compile().build((err, message) => {
-        if (err) reject(err);
-        else resolve(message);
-      });
-    });
-  } catch {
-    // Fallback: return original if rebuild fails
-    return rawEmail;
-  }
+  const headers = rawStr.slice(0, sep + 4); // headers + blank line
+  return Buffer.from(headers + modifiedHtml, 'utf8');
 }
