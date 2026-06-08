@@ -1,4 +1,4 @@
-import forge from 'node-forge';
+import crypto from 'crypto';
 import { prisma } from '../db/client';
 import { logger } from '../db/logger';
 
@@ -12,9 +12,14 @@ interface DkimKeys {
 export async function generateDkimKeys(domainId: string): Promise<DkimKeys> {
   const selector = process.env.DKIM_SELECTOR ?? 'mail';
 
-  const keypair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
-  const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey);
-  const publicKeyPem = forge.pki.publicKeyToPem(keypair.publicKey);
+  // Use Node's crypto (not node-forge): PKCS#8 private keys are what mailauth's
+  // dkimSign expects. node-forge emitted PKCS#1 keys, which silently produced an
+  // empty signature and corrupted the message header block.
+  const { publicKey: publicKeyPem, privateKey: privateKeyPem } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
 
   // Strip PEM headers for DNS TXT record
   const publicKeyDns = publicKeyPem
