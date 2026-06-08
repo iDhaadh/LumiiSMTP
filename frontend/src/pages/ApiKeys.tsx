@@ -47,6 +47,7 @@ export default function ApiKeysPage() {
   const [name, setName] = useState('');
   const [newKey, setNewKey] = useState<string | null>(null);
   const [showNewKey, setShowNewKey] = useState(false);
+  const [createError, setCreateError] = useState('');
   const qc = useQueryClient();
 
   const { data: keys = [], isLoading } = useQuery({
@@ -60,7 +61,9 @@ export default function ApiKeysPage() {
       qc.invalidateQueries({ queryKey: ['apikeys'] });
       setNewKey(res.data.fullKey);
       setName('');
+      setCreateError('');
     },
+    onError: (err: any) => setCreateError(err.response?.data?.error ?? 'Failed to create key'),
   });
 
   const revokeKey = useMutation({
@@ -116,6 +119,7 @@ export default function ApiKeysPage() {
             <Plus size={14} /> Create
           </button>
         </div>
+        {createError && <p className="text-red-600 text-xs mt-2">{createError}</p>}
       </div>
 
       {/* Key list */}
