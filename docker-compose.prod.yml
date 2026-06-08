@@ -1,0 +1,90 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smtprelay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-smtprelay}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smtprelay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    ports:
+      - "25:25"
+      - "465:465"
+      - "587:587"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-smtprelay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-smtprelay}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
+      BOUNCE_EMAIL: ${BOUNCE_EMAIL}
+      TRACKING_DOMAIN: ${TRACKING_DOMAIN}
+      SMTP_TLS_CERT: /certs/fullchain.pem
+      SMTP_TLS_KEY: /certs/privkey.pem
+      PORT: 3000
+    volumes:
+      - /etc/letsencrypt/live/${DOMAIN}:/certs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "node -e \"const {execSync}=require('child_process');execSync('npx prisma migrate deploy',{stdio:'inherit'})\" && node dist/index.js"
+
+  worker:
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-smtprelay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-smtprelay}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
+      TRACKING_DOMAIN: ${TRACKING_DOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/worker.js
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

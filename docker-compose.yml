@@ -1,0 +1,103 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smtprelay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smtprelay}
+      POSTGRES_DB: ${POSTGRES_DB:-smtprelay}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smtprelay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      target: development
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # REST API
+      - "25:25"       # SMTP
+      - "465:465"     # SMTPS
+      - "587:587"     # Submission
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-smtprelay}:${POSTGRES_PASSWORD:-smtprelay}@postgres:5432/${POSTGRES_DB:-smtprelay}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
+      BOUNCE_EMAIL: ${BOUNCE_EMAIL}
+      TRACKING_DOMAIN: ${TRACKING_DOMAIN}
+      SMTP_TLS_CERT: ${SMTP_TLS_CERT}
+      SMTP_TLS_KEY: ${SMTP_TLS_KEY}
+      PORT: 3000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run dev
+
+  worker:
+    build:
+      context: ./backend
+      target: development
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-smtprelay}:${POSTGRES_PASSWORD:-smtprelay}@postgres:5432/${POSTGRES_DB:-smtprelay}
+      REDIS_URL: redis://redis:6379
+      DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
+      BOUNCE_EMAIL: ${BOUNCE_EMAIL}
+      TRACKING_DOMAIN: ${TRACKING_DOMAIN}
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run worker
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    command: npm run dev -- --host
+
+volumes:
+  postgres_data:
+  redis_data:

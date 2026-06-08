@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  DELIVERED
+  FAILED
+  BOUNCED
+  SPAM_COMPLAINT
+}
+
+enum EventType {
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  SPAM_COMPLAINT
+  UNSUBSCRIBED
+}
+
+enum BounceType {
+  HARD
+  SOFT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  plan         Plan     @default(FREE)
+  isAdmin      Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  dailyLimit   Int      @default(1000)
+  monthlyLimit Int      @default(10000)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  apiKeys         ApiKey[]
+  domains         Domain[]
+  emails          Email[]
+  webhooks        Webhook[]
+  suppressionList SuppressionList[]
+
+  @@map("users")
+}
+
+model ApiKey {
+  id        String    @id @default(uuid())
+  userId    String
+  keyHash   String    @unique
+  keyPrefix String
+  name      String
+  lastUsed  DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model Domain {
+  id              String   @id @default(uuid())
+  userId          String
+  domain          String
+  dkimPrivateKey  String?  @db.Text
+  dkimPublicKey   String?  @db.Text
+  dkimSelector    String   @default("mail")
+  spfVerified     Boolean  @default(false)
+  dkimVerified    Boolean  @default(false)
+  dmarcVerified   Boolean  @default(false)
+  bounceAddress   String?
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emails Email[]
+
+  @@unique([userId, domain])
+  @@index([userId])
+  @@map("domains")
+}
+
+model Email {
+  id          String      @id @default(uuid())
+  userId      String
+  domainId    String?
+  messageId   String      @unique
+  fromAddress String
+  toAddresses String[]
+  subject     String
+  status      EmailStatus @default(QUEUED)
+  size        Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain Domain?      @relation(fields: [domainId], references: [id])
+  events EmailEvent[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("emails")
+}
+
+model EmailEvent {
+  id        String    @id @default(uuid())
+  emailId   String
+  eventType EventType
+  timestamp DateTime  @default(now())
+  metadata  Json?
+
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([emailId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("email_events")
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  userId    String
+  url       String
+  events    String[]
+  secret    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("webhooks")
+}
+
+model SuppressionList {
+  id         String     @id @default(uuid())
+  userId     String
+  email      String
+  reason     String
+  bounceType BounceType?
+  createdAt  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, email])
+  @@index([userId])
+  @@map("suppression_list")
+}
