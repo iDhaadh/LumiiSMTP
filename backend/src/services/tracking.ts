@@ -54,8 +54,8 @@ export async function injectTracking(
 
     const composer = new MailComposer({
       from: parsed.from?.text,
-      to: parsed.to?.text,
-      cc: parsed.cc?.text,
+      to: Array.isArray(parsed.to) ? parsed.to.map((a) => a.text).join(', ') : parsed.to?.text,
+      cc: Array.isArray(parsed.cc) ? parsed.cc.map((a) => a.text).join(', ') : parsed.cc?.text,
       subject: parsed.subject,
       html: modifiedHtml,
       text: parsed.text ?? undefined,
