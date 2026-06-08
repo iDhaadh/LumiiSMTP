@@ -24,6 +24,6 @@ export const useAuthStore = create<AuthState>()(
       login: (token, user) => set({ token, user }),
       logout: () => set({ token: null, user: null }),
     }),
-    { name: 'smtp-relay-auth' }
+    { name: 'lumii-smtp-auth' }
   )
 );

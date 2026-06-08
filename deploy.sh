@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────────────
-# SMTP Relay — Linux Production Deploy Script
+# Lumii SMTP — Linux Production Deploy Script
 # Run as root or a user with sudo + docker access
 # Usage: bash deploy.sh yourdomain.com your@email.com
 # ─────────────────────────────────────────────────────────────────────────────
@@ -11,7 +11,7 @@ EMAIL="${2:-admin@yourdomain.com}"
 APP_DIR="/opt/smtp-relay"
 
 echo "════════════════════════════════════════"
-echo " SMTP Relay — Deploy"
+echo " Lumii SMTP — Deploy"
 echo " Domain : $DOMAIN"
 echo " Email  : $EMAIL"
 echo "════════════════════════════════════════"

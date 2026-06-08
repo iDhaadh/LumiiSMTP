@@ -1,5 +1,5 @@
 {
-  "name": "smtp-relay-frontend",
+  "name": "lumii-smtp-frontend",
   "version": "1.0.0",
   "private": true,
   "scripts": {

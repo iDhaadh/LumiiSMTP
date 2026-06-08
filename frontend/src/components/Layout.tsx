@@ -33,7 +33,7 @@ export default function Layout() {
       <aside className="w-56 flex-shrink-0 bg-gray-900 flex flex-col">
         <div className="flex items-center gap-2 px-5 py-5 border-b border-gray-700">
           <Send className="text-blue-400" size={20} />
-          <span className="text-white font-semibold text-sm">SMTP Relay</span>
+          <span className="text-white font-semibold text-sm">Lumii SMTP</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">

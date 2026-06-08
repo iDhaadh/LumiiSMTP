@@ -79,7 +79,7 @@ curl -X POST https://mail.yourdomain.com/api/v1/email/send \
   -d '{
     "from": "you@yourdomain.com",
     "to": "test@gmail.com",
-    "subject": "Test from SMTP Relay",
+    "subject": "Test from Lumii SMTP",
     "html": "<h1>It works!</h1>"
   }'
 ```

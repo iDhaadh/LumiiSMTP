@@ -33,7 +33,7 @@ export default function LoginPage() {
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-2">
             <Send className="text-blue-600" size={24} />
-            <span className="text-xl font-bold text-gray-900">SMTP Relay</span>
+            <span className="text-xl font-bold text-gray-900">Lumii SMTP</span>
           </div>
         </div>
 

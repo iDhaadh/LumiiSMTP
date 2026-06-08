@@ -1,4 +1,4 @@
-# SMTP Relay Service
+# Lumii SMTP
 
 A self-hosted, production-ready SMTP relay platform similar to SMTP2GO. Send transactional and marketing emails through your own infrastructure with full deliverability tooling, analytics, and a web dashboard.
 

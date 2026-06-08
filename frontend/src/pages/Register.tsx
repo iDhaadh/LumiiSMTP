@@ -32,7 +32,7 @@ export default function RegisterPage() {
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-2">
             <Send className="text-blue-600" size={24} />
-            <span className="text-xl font-bold">SMTP Relay</span>
+            <span className="text-xl font-bold">Lumii SMTP</span>
           </div>
         </div>
 
