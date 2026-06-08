@@ -28,15 +28,51 @@ export async function injectTracking(
 
   const modifiedHtml = $.html();
 
-  // Rebuild the raw email with the modified HTML
-  const lines = rawEmail.toString('utf8').split('\r\n');
-  const headerEnd = lines.findIndex((l) => l === '');
-  const headers = lines.slice(0, headerEnd + 1).join('\r\n');
+  // Rebuild email preserving full MIME structure (attachments, multipart, etc.)
+  // using nodemailer MailComposer so we don't corrupt boundaries
+  try {
+    const { default: MailComposer } = await import('nodemailer/lib/mail-composer');
 
-  // Simple rebuild: replace content-type text/html body
-  // For production, use a proper MIME library
-  const newBody = modifiedHtml;
-  const rebuilt = `${headers}\r\n${newBody}`;
+    const skipHeaders = new Set([
+      'from','to','cc','bcc','subject','content-type','mime-version',
+      'message-id','date','reply-to','content-transfer-encoding',
+    ]);
+    const extraHeaders: Record<string, string> = {};
+    parsed.headers?.forEach((value, key) => {
+      if (!skipHeaders.has(key.toLowerCase())) {
+        extraHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
+      }
+    });
 
-  return Buffer.from(rebuilt, 'utf8');
+    const attachments = (parsed.attachments ?? []).map((att) => ({
+      filename: att.filename ?? 'attachment',
+      content: att.content,
+      contentType: att.contentType,
+      contentDisposition: att.contentDisposition as 'attachment' | 'inline',
+      cid: att.cid,
+    }));
+
+    const composer = new MailComposer({
+      from: parsed.from?.text,
+      to: parsed.to?.text,
+      cc: parsed.cc?.text,
+      subject: parsed.subject,
+      html: modifiedHtml,
+      text: parsed.text ?? undefined,
+      attachments,
+      headers: extraHeaders,
+      date: parsed.date,
+      messageId: parsed.messageId ?? undefined,
+    } as any);
+
+    return new Promise<Buffer>((resolve, reject) => {
+      composer.compile().build((err, message) => {
+        if (err) reject(err);
+        else resolve(message);
+      });
+    });
+  } catch {
+    // Fallback: return original if rebuild fails
+    return rawEmail;
+  }
 }

@@ -34,6 +34,7 @@ services:
       target: production
     restart: always
     ports:
+      - "127.0.0.1:3000:3000"
       - "25:25"
       - "465:465"
       - "587:587"
