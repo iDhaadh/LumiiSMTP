@@ -4,10 +4,49 @@ import { Plus, Trash2, Copy, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '../api/client';
 
+function KeyCell({ fullKey, keyPrefix }: { fullKey: string | null; keyPrefix: string }) {
+  const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    if (fullKey) {
+      navigator.clipboard.writeText(fullKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+        {visible && fullKey ? fullKey : `${keyPrefix}••••••••`}
+      </span>
+      {fullKey && (
+        <>
+          <button
+            onClick={() => setVisible((v) => !v)}
+            className="text-gray-400 hover:text-gray-700 transition-colors"
+            title={visible ? 'Hide key' : 'Show key'}
+          >
+            {visible ? <EyeOff size={13} /> : <Eye size={13} />}
+          </button>
+          <button
+            onClick={copy}
+            className="text-gray-400 hover:text-blue-600 transition-colors"
+            title="Copy key"
+          >
+            {copied ? <span className="text-xs text-green-600">✓</span> : <Copy size={13} />}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ApiKeysPage() {
   const [name, setName] = useState('');
   const [newKey, setNewKey] = useState<string | null>(null);
-  const [showKey, setShowKey] = useState(false);
+  const [showNewKey, setShowNewKey] = useState(false);
   const qc = useQueryClient();
 
   const { data: keys = [], isLoading } = useQuery({
@@ -19,7 +58,7 @@ export default function ApiKeysPage() {
     mutationFn: (name: string) => api.post('/apikeys', { name }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['apikeys'] });
-      setNewKey(res.data.key);
+      setNewKey(res.data.fullKey);
       setName('');
     },
   });
@@ -33,21 +72,21 @@ export default function ApiKeysPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">API Keys</h1>
 
-      {/* New key revealed */}
+      {/* New key banner */}
       {newKey && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
           <div className="text-sm font-semibold text-green-800 mb-2">
-            API key created — copy it now, it won't be shown again
+            API key created — you can also view it anytime from the table below
           </div>
           <div className="flex items-center gap-2">
             <code className="flex-1 font-mono text-sm bg-white border border-green-200 rounded px-3 py-2 text-gray-800">
-              {showKey ? newKey : '•'.repeat(newKey.length)}
+              {showNewKey ? newKey : '•'.repeat(newKey.length)}
             </code>
-            <button onClick={() => setShowKey((v) => !v)} className="p-2 text-gray-400 hover:text-gray-700">
-              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+            <button onClick={() => setShowNewKey((v) => !v)} className="p-2 text-gray-400 hover:text-gray-700">
+              {showNewKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
             <button
-              onClick={() => { navigator.clipboard.writeText(newKey); }}
+              onClick={() => navigator.clipboard.writeText(newKey)}
               className="p-2 text-gray-400 hover:text-blue-600"
             >
               <Copy size={14} />
@@ -101,7 +140,9 @@ export default function ApiKeysPage() {
             {keys.map((k: any) => (
               <tr key={k.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900">{k.name}</td>
-                <td className="px-4 py-3 font-mono text-gray-500 text-xs">{k.keyPrefix}••••••••</td>
+                <td className="px-4 py-3">
+                  <KeyCell fullKey={k.fullKey} keyPrefix={k.keyPrefix} />
+                </td>
                 <td className="px-4 py-3 text-gray-500">
                   {k.lastUsed ? format(new Date(k.lastUsed), 'MMM d, yyyy') : 'Never'}
                 </td>

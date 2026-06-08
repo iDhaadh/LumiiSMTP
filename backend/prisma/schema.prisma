@@ -79,14 +79,15 @@ model SmtpUser {
 }
 
 model ApiKey {
-  id        String    @id @default(uuid())
-  userId    String
-  keyHash   String    @unique
-  keyPrefix String
-  name      String
-  lastUsed  DateTime?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
+  id           String    @id @default(uuid())
+  userId       String
+  keyHash      String    @unique
+  keyPrefix    String
+  encryptedKey String?
+  name         String
+  lastUsed     DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

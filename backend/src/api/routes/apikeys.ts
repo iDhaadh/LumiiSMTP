@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../../db/client';
 import { validate } from '../middleware/validate';
 import { AuthRequest } from '../middleware/auth';
+import { encryptKey, decryptKey } from '../../services/keyEncryption';
 
 const router = Router();
 
@@ -14,9 +15,15 @@ router.get('/', async (req, res) => {
   const keys = await prisma.apiKey.findMany({
     where: { userId, isActive: true },
     orderBy: { createdAt: 'desc' },
-    select: { id: true, keyPrefix: true, name: true, lastUsed: true, createdAt: true },
+    select: { id: true, keyPrefix: true, encryptedKey: true, name: true, lastUsed: true, createdAt: true },
   });
-  res.json(keys);
+  res.json(
+    keys.map((k) => ({
+      ...k,
+      fullKey: k.encryptedKey ? decryptKey(k.encryptedKey) : null,
+      encryptedKey: undefined,
+    }))
+  );
 });
 
 // POST /api/v1/apikeys
@@ -31,17 +38,17 @@ router.post(
     const rawKey = `sk_${crypto.randomBytes(32).toString('hex')}`;
     const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
     const keyPrefix = rawKey.slice(0, 10);
+    const encryptedKey = encryptKey(rawKey);
 
     const record = await prisma.apiKey.create({
-      data: { id: uuidv4(), userId, keyHash, keyPrefix, name },
+      data: { id: uuidv4(), userId, keyHash, keyPrefix, encryptedKey, name },
     });
 
-    // Return raw key once — never stored in plaintext again
     res.status(201).json({
       id: record.id,
       name: record.name,
       keyPrefix,
-      key: rawKey,
+      fullKey: rawKey,
       createdAt: record.createdAt,
     });
   }
