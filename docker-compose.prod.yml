@@ -42,6 +42,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-smtprelay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-smtprelay}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
+      KEY_ENCRYPTION_SECRET: ${KEY_ENCRYPTION_SECRET}
       DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
       BOUNCE_EMAIL: ${BOUNCE_EMAIL}
       TRACKING_DOMAIN: ${TRACKING_DOMAIN}
@@ -49,13 +50,12 @@ services:
       SMTP_TLS_KEY: /certs/privkey.pem
       PORT: 3000
     volumes:
-      - /etc/letsencrypt/live/${DOMAIN}:/certs:ro
+      - /opt/lumii-smtp/certs:/certs:ro
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: sh -c "node -e \"const {execSync}=require('child_process');execSync('npx prisma migrate deploy',{stdio:'inherit'})\" && node dist/index.js"
 
   worker:
     build:
@@ -66,6 +66,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-smtprelay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-smtprelay}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      KEY_ENCRYPTION_SECRET: ${KEY_ENCRYPTION_SECRET}
       DKIM_SELECTOR: ${DKIM_SELECTOR:-mail}
       TRACKING_DOMAIN: ${TRACKING_DOMAIN}
     depends_on:
