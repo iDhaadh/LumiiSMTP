@@ -47,7 +47,8 @@ export async function signEmailWithDkim(
 
   try {
     const { dkimSign } = await import('mailauth');
-    const { signatures } = await dkimSign(rawEmail, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = await dkimSign(rawEmail, {
       canonicalization: 'relaxed/relaxed',
       algorithm: 'rsa-sha256',
       signTime: new Date(),
@@ -60,13 +61,33 @@ export async function signEmailWithDkim(
       ],
     } as any);
 
-    if (signatures) {
-      return Buffer.concat([Buffer.from(signatures), rawEmail]);
+    // mailauth may return a string or an object with a `signatures` field.
+    const sigRaw: string =
+      typeof result === 'string' ? result : (result?.signatures ?? '');
+
+    logger.info(
+      `[diag] DKIM sig for ${domain.domain}: len=${sigRaw.length} value=${JSON.stringify(sigRaw.slice(0, 200))}`
+    );
+
+    // CRITICAL: only prepend when we actually have a DKIM-Signature header.
+    // A blank/whitespace-only result would prepend a leading CRLF, which
+    // empties the header block and makes mail clients treat all real headers
+    // (From/To/Subject/Content-Type) as the message body.
+    if (/DKIM-Signature\s*:/i.test(sigRaw)) {
+      // Normalise: strip any trailing newlines, then add exactly one CRLF so
+      // the signature header joins cleanly with the existing header block.
+      const sig = sigRaw.replace(/[\r\n]+$/, '');
+      return Buffer.concat([Buffer.from(sig + '\r\n', 'utf8'), rawEmail]);
     }
+
+    logger.warn(
+      `DKIM produced no valid signature for ${domain.domain}; sending unsigned`
+    );
   } catch (err) {
     logger.warn(`DKIM signing failed for domain ${domain.domain}: ${(err as Error).message}`);
   }
 
+  // Always return a structurally-intact message, signed or not.
   return rawEmail;
 }
 

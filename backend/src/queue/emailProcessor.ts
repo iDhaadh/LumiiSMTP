@@ -48,8 +48,8 @@ function sendRaw(
       port: opts.port,
       secure: opts.secure,
       tls: { rejectUnauthorized: false },
-      logger: true,   // DIAGNOSTIC: log SMTP conversation
-      debug: true,    // DIAGNOSTIC: log DATA bytes
+      logger: false,
+      debug: false,
     });
 
     const done = (err?: Error) => {
