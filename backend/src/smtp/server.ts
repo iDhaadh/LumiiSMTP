@@ -22,10 +22,10 @@ function createSmtpServer(options: {
 
   const server = new SMTPServer({
     secure: options.secure,
-    hideSTARTTLS: options.hideSTARTTLS,
+    hideSTARTTLS: options.hideSTARTTLS ?? !tls,
     ...(tls ? { key: tls.key, cert: tls.cert } : {}),
     authMethods: ['PLAIN', 'LOGIN'],
-    allowInsecureAuth: !tls,
+    allowInsecureAuth: true,
 
     onAuth(auth, _session, callback) {
       const { username, password } = auth;
