@@ -94,11 +94,11 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
 
   const trackingDomain = process.env.TRACKING_DOMAIN;
   if (trackingDomain) {
-    rawEmail = await injectTracking(rawEmail, emailId, trackingDomain);
+    rawEmail = (await injectTracking(rawEmail, emailId, trackingDomain)) as Buffer;
   }
 
   if (domainId) {
-    rawEmail = await signEmailWithDkim(rawEmail, domainId);
+    rawEmail = (await signEmailWithDkim(rawEmail, domainId)) as Buffer;
   }
 
   const failedRecipients: string[] = [];

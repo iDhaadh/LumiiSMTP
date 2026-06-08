@@ -58,7 +58,7 @@ export async function signEmailWithDkim(
           domain: domain.domain,
         },
       ],
-    });
+    } as any);
 
     if (signatures) {
       return Buffer.concat([Buffer.from(signatures), rawEmail]);

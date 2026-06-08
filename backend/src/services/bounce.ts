@@ -60,11 +60,11 @@ function parseDsn(dsn: string): BounceResult | null {
 
   if (!prefix) return null;
 
-  if (HARD_BOUNCE_CODES.has(prefix + statusCode?.slice(1, 3) ?? '') || prefix === '5') {
+  if (HARD_BOUNCE_CODES.has(prefix + (statusCode?.slice(1, 3) ?? '')) || prefix === '5') {
     return { email, type: 'HARD', statusCode, reason: dsn };
   }
 
-  if (SOFT_BOUNCE_CODES.has(prefix + statusCode?.slice(1, 3) ?? '') || prefix === '4') {
+  if (SOFT_BOUNCE_CODES.has(prefix + (statusCode?.slice(1, 3) ?? '')) || prefix === '4') {
     return { email, type: 'SOFT', statusCode, reason: dsn };
   }
 

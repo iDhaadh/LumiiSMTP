@@ -6,7 +6,7 @@ export const redisConnection = new IORedis(process.env.REDIS_URL ?? 'redis://loc
 });
 
 export const emailQueue = new Queue('email', {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: { type: 'exponential', delay: 60000 },
@@ -16,7 +16,7 @@ export const emailQueue = new Queue('email', {
 });
 
 export const webhookQueue = new Queue('webhook', {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 5,
     backoff: { type: 'exponential', delay: 5000 },

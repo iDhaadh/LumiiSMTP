@@ -6,7 +6,7 @@ import { EmailJobData, processEmailJobData } from './emailProcessor';
 
 export function startEmailWorker() {
   const worker = new Worker<EmailJobData>('email', (job: Job<EmailJobData>) => processEmailJobData(job.data), {
-    connection: redisConnection,
+    connection: redisConnection as any,
     concurrency: 10,
   });
 

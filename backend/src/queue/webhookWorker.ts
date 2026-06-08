@@ -31,7 +31,7 @@ async function processWebhookJob(job: Job<WebhookJob>) {
 
 export function startWebhookWorker() {
   const worker = new Worker<WebhookJob>('webhook', processWebhookJob, {
-    connection: redisConnection,
+    connection: redisConnection as any,
     concurrency: 20,
   });
 
