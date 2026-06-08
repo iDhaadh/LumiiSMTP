@@ -90,15 +90,16 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
   await recordEvent(emailId, 'SENT');
   await incrementSendCount(userId, toAddresses.length);
 
-  let rawEmail = Buffer.from(rawBase64, 'base64');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rawEmail: any = Buffer.from(rawBase64, 'base64');
 
   const trackingDomain = process.env.TRACKING_DOMAIN;
   if (trackingDomain) {
-    rawEmail = (await injectTracking(rawEmail, emailId, trackingDomain)) as Buffer;
+    rawEmail = await injectTracking(rawEmail, emailId, trackingDomain);
   }
 
   if (domainId) {
-    rawEmail = (await signEmailWithDkim(rawEmail, domainId)) as Buffer;
+    rawEmail = await signEmailWithDkim(rawEmail, domainId);
   }
 
   const failedRecipients: string[] = [];
