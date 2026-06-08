@@ -48,8 +48,8 @@ function sendRaw(
       port: opts.port,
       secure: opts.secure,
       tls: { rejectUnauthorized: false },
-      logger: false,
-      debug: false,
+      logger: true,   // DIAGNOSTIC: log SMTP conversation
+      debug: true,    // DIAGNOSTIC: log DATA bytes
     });
 
     const done = (err?: Error) => {
@@ -131,13 +131,22 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let rawEmail: any = Buffer.from(rawBase64, 'base64');
 
+  // ── DIAGNOSTIC: log first 600 bytes of raw email ──────────────────────────
+  logger.info(`[diag][${emailId}] rawEmail size=${rawEmail.length} first600=${
+    rawEmail.slice(0, 600).toString('utf8').replace(/\r\n/g, '↵').replace(/\n/g, '↓').replace(/\r/g, '←')
+  }`);
+
   const trackingDomain = process.env.TRACKING_DOMAIN;
   if (trackingDomain) {
     rawEmail = await injectTracking(rawEmail, emailId, trackingDomain);
   }
 
   if (domainId) {
+    const beforeDkim = rawEmail.slice(0, 200).toString('utf8').replace(/\r\n/g, '↵').replace(/\n/g, '↓');
     rawEmail = await signEmailWithDkim(rawEmail, domainId);
+    const afterDkim = rawEmail.slice(0, 300).toString('utf8').replace(/\r\n/g, '↵').replace(/\n/g, '↓');
+    logger.info(`[diag][${emailId}] DKIM before=${beforeDkim}`);
+    logger.info(`[diag][${emailId}] DKIM after =${afterDkim}`);
   }
 
   const failedRecipients: string[] = [];
