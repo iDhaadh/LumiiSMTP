@@ -1,5 +1,4 @@
 import dns from 'dns/promises';
-import nodemailer from 'nodemailer';
 import { prisma } from '../db/client';
 import { logger } from '../db/logger';
 import { signEmailWithDkim } from '../services/dkim';
@@ -25,33 +24,71 @@ async function resolveMx(domain: string): Promise<string[]> {
   }
 }
 
-function getRelayTransport() {
-  const host = process.env.SMTP_RELAY_HOST;
-  if (!host) return null;
-  return nodemailer.createTransport({
-    host,
-    port: parseInt(process.env.SMTP_RELAY_PORT ?? '587'),
-    secure: process.env.SMTP_RELAY_PORT === '465',
-    auth: process.env.SMTP_RELAY_USER
-      ? { user: process.env.SMTP_RELAY_USER, pass: process.env.SMTP_RELAY_PASS }
-      : undefined,
-    tls: { rejectUnauthorized: false },
+
+/**
+ * Send a pre-built raw RFC 2822 message using smtp-connection directly.
+ * We deliberately bypass nodemailer's sendMail() because passing { envelope, raw }
+ * to sendMail() causes it to wrap the raw buffer as the body of a new outer
+ * message (adding its own From/Date headers), which corrupts subject, attachments
+ * and formatting in mail clients.  smtp-connection.send() maps 1-to-1 to SMTP
+ * protocol commands: MAIL FROM, RCPT TO, DATA — no wrapping, no header injection.
+ */
+function sendRaw(
+  opts: { host: string; port: number; secure: boolean; auth?: { user: string; pass: string } },
+  from: string,
+  to: string,
+  rawEmail: Buffer
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const SMTPConnection = require('nodemailer/lib/smtp-connection');
+    const conn = new SMTPConnection({
+      host: opts.host,
+      port: opts.port,
+      secure: opts.secure,
+      tls: { rejectUnauthorized: false },
+      logger: false,
+      debug: false,
+    });
+
+    const done = (err?: Error) => {
+      try { conn.close(); } catch { /* ignore */ }
+      if (err) reject(err); else resolve();
+    };
+
+    conn.on('error', done);
+
+    conn.connect(() => {
+      const afterAuth = () => {
+        conn.send({ from, to: [to] }, rawEmail, (err: Error | null) => {
+          done(err ?? undefined);
+        });
+      };
+
+      if (opts.auth?.user) {
+        conn.login({ credentials: { user: opts.auth.user, pass: opts.auth.pass } }, (err: Error | null) => {
+          if (err) return done(err);
+          afterAuth();
+        });
+      } else {
+        afterAuth();
+      }
+    });
   });
 }
 
 async function sendToMx(mxHost: string, from: string, to: string, rawEmail: Buffer): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    host: mxHost,
-    port: 25,
-    secure: false,
-    tls: { rejectUnauthorized: false },
-  });
-  await transporter.sendMail({ envelope: { from, to }, raw: rawEmail });
+  await sendRaw({ host: mxHost, port: 25, secure: false }, from, to, rawEmail);
 }
 
 async function sendViaRelay(from: string, to: string, rawEmail: Buffer): Promise<void> {
-  const transporter = getRelayTransport()!;
-  await transporter.sendMail({ envelope: { from, to }, raw: rawEmail });
+  const host = process.env.SMTP_RELAY_HOST!;
+  const port = parseInt(process.env.SMTP_RELAY_PORT ?? '587');
+  const secure = process.env.SMTP_RELAY_PORT === '465';
+  const auth = process.env.SMTP_RELAY_USER
+    ? { user: process.env.SMTP_RELAY_USER, pass: process.env.SMTP_RELAY_PASS ?? '' }
+    : undefined;
+  await sendRaw({ host, port, secure, auth }, from, to, rawEmail);
 }
 
 async function recordEvent(emailId: string, eventType: string, metadata?: object) {
