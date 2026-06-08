@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Mail, Globe, Key, Webhook, Settings, LogOut, Send,
-  ShieldOff, ShieldAlert,
+  ShieldOff, ShieldAlert, Users,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import clsx from 'clsx';
@@ -13,6 +13,7 @@ const baseNav = [
   { to: '/apikeys', label: 'API Keys', icon: Key, adminOnly: false },
   { to: '/webhooks', label: 'Webhooks', icon: Webhook, adminOnly: false },
   { to: '/suppressions', label: 'Suppressions', icon: ShieldOff, adminOnly: false },
+  { to: '/smtp-users', label: 'SMTP Users', icon: Users, adminOnly: false },
   { to: '/admin', label: 'Admin', icon: ShieldAlert, adminOnly: true },
   { to: '/settings', label: 'Settings', icon: Settings, adminOnly: false },
 ];

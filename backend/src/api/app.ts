@@ -9,6 +9,7 @@ import domainsRouter from './routes/domains';
 import apikeysRouter from './routes/apikeys';
 import webhooksRouter from './routes/webhooks';
 import suppressionsRouter from './routes/suppressions';
+import smtpUsersRouter from './routes/smtpUsers';
 import adminRouter from './routes/admin';
 import trackingRouter from './routes/tracking';
 
@@ -41,6 +42,7 @@ app.use('/api/v1/domains', requireAuth, domainsRouter);
 app.use('/api/v1/apikeys', requireAuth, apikeysRouter);
 app.use('/api/v1/webhooks', requireAuth, webhooksRouter);
 app.use('/api/v1/suppressions', requireAuth, suppressionsRouter);
+app.use('/api/v1/smtp-users', requireAuth, smtpUsersRouter);
 app.use('/api/v1/admin', requireAuth, adminRouter);
 
 // Health check

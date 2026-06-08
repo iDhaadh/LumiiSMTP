@@ -22,6 +22,17 @@ export async function authenticateSmtpCredentials(
   username: string,
   password: string
 ): Promise<string | null> {
+  // Check dedicated SMTP users first
+  const smtpUser = await prisma.smtpUser.findUnique({
+    where: { username, isActive: true },
+    include: { user: { select: { id: true, isActive: true } } },
+  });
+  if (smtpUser && smtpUser.user.isActive) {
+    const valid = await bcrypt.compare(password, smtpUser.passwordHash);
+    if (valid) return smtpUser.userId;
+  }
+
+  // Fall back to account credentials (email + password)
   const user = await prisma.user.findUnique({
     where: { email: username, isActive: true },
   });

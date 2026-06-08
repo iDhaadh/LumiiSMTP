@@ -9,6 +9,7 @@ import DomainsPage from './pages/Domains';
 import ApiKeysPage from './pages/ApiKeys';
 import WebhooksPage from './pages/Webhooks';
 import SuppressionsPage from './pages/Suppressions';
+import SmtpUsersPage from './pages/SmtpUsers';
 import AdminPage from './pages/Admin';
 import SettingsPage from './pages/Settings';
 
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="apikeys" element={<ApiKeysPage />} />
           <Route path="webhooks" element={<WebhooksPage />} />
           <Route path="suppressions" element={<SuppressionsPage />} />
+          <Route path="smtp-users" element={<SmtpUsersPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
