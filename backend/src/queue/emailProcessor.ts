@@ -102,6 +102,7 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
     }
 
     let sent = false;
+    const mxErrors: string[] = [];
     for (const mx of mxHosts) {
       try {
         await sendToMx(mx, fromAddress, to, rawEmail);
@@ -109,11 +110,16 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
         sent = true;
         break;
       } catch (err) {
-        logger.warn(`Failed to deliver to ${mx}: ${(err as Error).message}`);
+        const msg = (err as Error).message;
+        mxErrors.push(`${mx}: ${msg}`);
+        logger.warn(`Failed to deliver to ${mx}: ${msg}`);
       }
     }
 
-    if (!sent) failedRecipients.push(to);
+    if (!sent) {
+      failedRecipients.push(to);
+      await recordEvent(emailId, 'BOUNCED', { reason: 'delivery_failed', email: to, errors: mxErrors });
+    }
   }
 
   const finalStatus = failedRecipients.length === toAddresses.length ? 'FAILED' : 'DELIVERED';

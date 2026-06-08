@@ -17,10 +17,18 @@ export async function handleEmailData(
   const rawEmail = Buffer.concat(chunks);
 
   const parsed = await simpleParser(rawEmail);
-  const messageId = (parsed.messageId ?? uuidv4()).replace(/[<>]/g, '');
   const fromAddress = session.envelope.mailFrom.address;
   const toAddresses = session.envelope.rcptTo.map((r) => r.address);
   const subject = parsed.subject ?? '(no subject)';
+
+  // Ensure Message-ID header exists — Gmail rejects emails without one
+  const generatedId = `${uuidv4()}@${fromAddress.split('@')[1]}`;
+  const messageId = (parsed.messageId ?? generatedId).replace(/[<>]/g, '');
+  let finalRaw = rawEmail;
+  if (!parsed.messageId) {
+    const header = `Message-ID: <${generatedId}>\r\n`;
+    finalRaw = Buffer.concat([Buffer.from(header), rawEmail]);
+  }
 
   const domain = fromAddress.split('@')[1];
   const domainRecord = await prisma.domain.findFirst({
@@ -37,14 +45,14 @@ export async function handleEmailData(
       toAddresses,
       subject,
       status: 'QUEUED',
-      size: rawEmail.length,
+      size: finalRaw.length,
     },
   });
 
   await dispatchEmail({
     emailId: email.id,
     userId,
-    rawEmail: rawEmail.toString('base64'),
+    rawEmail: finalRaw.toString('base64'),
     fromAddress,
     toAddresses,
     domainId: domainRecord?.id ?? null,
