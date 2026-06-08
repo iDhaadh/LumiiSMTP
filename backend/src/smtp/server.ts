@@ -61,10 +61,10 @@ function createSmtpServer(options: {
           callback(err);
         });
     },
+  });
 
-    onError(err) {
-      logger.error('SMTP server error', err);
-    },
+  server.on('error', (err) => {
+    logger.error('SMTP server error', err);
   });
 
   server.listen(options.port, () => {

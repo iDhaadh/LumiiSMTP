@@ -14,7 +14,7 @@ router.post(
   '/register',
   [
     body('name').trim().notEmpty(),
-    body('email').isEmail({ require_tld: false }).normalizeEmail({ gmail_dots: false }),
+    body('email').isEmail({ require_tld: false }).normalizeEmail({ all_lowercase: true }),
     body('password').isLength({ min: 8 }),
   ],
   validate,
@@ -62,7 +62,7 @@ router.post(
 // POST /api/v1/auth/login
 router.post(
   '/login',
-  [body('email').isEmail({ require_tld: false }).normalizeEmail({ gmail_dots: false }), body('password').notEmpty()],
+  [body('email').isEmail({ require_tld: false }).normalizeEmail({ all_lowercase: true }), body('password').notEmpty()],
   validate,
   async (req, res) => {
     const { email, password } = req.body;

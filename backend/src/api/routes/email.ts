@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../../db/client';
-import { emailQueue } from '../../queue/emailQueue';
+import { dispatchEmail } from '../../queue/dispatcher';
 import { validate } from '../middleware/validate';
 import { AuthRequest } from '../middleware/auth';
 
@@ -72,18 +72,14 @@ router.post(
       },
     });
 
-    await emailQueue.add(
-      'send',
-      {
-        emailId: email.id,
-        userId,
-        rawEmail: Buffer.from(rawEmail).toString('base64'),
-        fromAddress: from,
-        toAddresses: toArr,
-        domainId: domainRecord?.id ?? null,
-      },
-      { jobId: email.id }
-    );
+    await dispatchEmail({
+      emailId: email.id,
+      userId,
+      rawEmail: Buffer.from(rawEmail).toString('base64'),
+      fromAddress: from,
+      toAddresses: toArr,
+      domainId: domainRecord?.id ?? null,
+    });
 
     res.status(202).json({ id: email.id, messageId, status: 'queued' });
   }
