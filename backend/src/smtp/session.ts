@@ -2,7 +2,7 @@ import { Readable } from 'stream';
 import { v4 as uuidv4 } from 'uuid';
 import { simpleParser } from 'mailparser';
 import { prisma } from '../db/client';
-import { emailQueue } from '../queue/emailQueue';
+import { dispatchEmail } from '../queue/dispatcher';
 import { logger } from '../db/logger';
 
 export async function handleEmailData(
@@ -41,23 +41,14 @@ export async function handleEmailData(
     },
   });
 
-  await emailQueue.add(
-    'send',
-    {
-      emailId: email.id,
-      userId,
-      rawEmail: rawEmail.toString('base64'),
-      fromAddress,
-      toAddresses,
-      domainId: domainRecord?.id ?? null,
-    },
-    {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 60000 },
-      removeOnComplete: 100,
-      removeOnFail: 500,
-    }
-  );
+  await dispatchEmail({
+    emailId: email.id,
+    userId,
+    rawEmail: rawEmail.toString('base64'),
+    fromAddress,
+    toAddresses,
+    domainId: domainRecord?.id ?? null,
+  });
 
-  logger.info(`Email queued: ${email.id} from ${fromAddress} to ${toAddresses.join(', ')}`);
+  logger.info(`Email dispatched: ${email.id} from ${fromAddress} to ${toAddresses.join(', ')}`);
 }

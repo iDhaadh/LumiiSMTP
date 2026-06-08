@@ -1,5 +1,14 @@
-import { redisConnection } from '../queue/emailQueue';
 import { prisma } from '../db/client';
+
+const devCounters = new Map<string, number>();
+
+function devIncr(key: string, by: number) {
+  devCounters.set(key, (devCounters.get(key) ?? 0) + by);
+}
+
+function devGet(key: string): number {
+  return devCounters.get(key) ?? 0;
+}
 
 export async function checkSendingLimit(userId: string): Promise<{ allowed: boolean; reason?: string }> {
   const user = await prisma.user.findUnique({
@@ -12,13 +21,21 @@ export async function checkSendingLimit(userId: string): Promise<{ allowed: bool
   const dayKey = `ratelimit:daily:${userId}:${now.toISOString().slice(0, 10)}`;
   const monthKey = `ratelimit:monthly:${userId}:${now.toISOString().slice(0, 7)}`;
 
-  const [daily, monthly] = await Promise.all([
-    redisConnection.get(dayKey),
-    redisConnection.get(monthKey),
-  ]);
+  let dailyCount: number;
+  let monthlyCount: number;
 
-  const dailyCount = parseInt(daily ?? '0');
-  const monthlyCount = parseInt(monthly ?? '0');
+  if (process.env.QUEUE_ENABLED === 'false') {
+    dailyCount = devGet(dayKey);
+    monthlyCount = devGet(monthKey);
+  } else {
+    const { redisConnection } = await import('../queue/emailQueue');
+    const [daily, monthly] = await Promise.all([
+      redisConnection.get(dayKey),
+      redisConnection.get(monthKey),
+    ]);
+    dailyCount = parseInt(daily ?? '0');
+    monthlyCount = parseInt(monthly ?? '0');
+  }
 
   if (dailyCount >= user.dailyLimit) {
     return { allowed: false, reason: `daily_limit_exceeded (${dailyCount}/${user.dailyLimit})` };
@@ -35,10 +52,17 @@ export async function incrementSendCount(userId: string, count = 1): Promise<voi
   const dayKey = `ratelimit:daily:${userId}:${now.toISOString().slice(0, 10)}`;
   const monthKey = `ratelimit:monthly:${userId}:${now.toISOString().slice(0, 7)}`;
 
+  if (process.env.QUEUE_ENABLED === 'false') {
+    devIncr(dayKey, count);
+    devIncr(monthKey, count);
+    return;
+  }
+
+  const { redisConnection } = await import('../queue/emailQueue');
   const pipeline = redisConnection.pipeline();
   pipeline.incrby(dayKey, count);
-  pipeline.expire(dayKey, 86400 + 3600); // 25h TTL
+  pipeline.expire(dayKey, 86400 + 3600);
   pipeline.incrby(monthKey, count);
-  pipeline.expire(monthKey, 31 * 86400 + 3600); // 32d TTL
+  pipeline.expire(monthKey, 31 * 86400 + 3600);
   await pipeline.exec();
 }
