@@ -25,6 +25,20 @@ async function resolveMx(domain: string): Promise<string[]> {
   }
 }
 
+function getRelayTransport() {
+  const host = process.env.SMTP_RELAY_HOST;
+  if (!host) return null;
+  return nodemailer.createTransport({
+    host,
+    port: parseInt(process.env.SMTP_RELAY_PORT ?? '587'),
+    secure: process.env.SMTP_RELAY_PORT === '465',
+    auth: process.env.SMTP_RELAY_USER
+      ? { user: process.env.SMTP_RELAY_USER, pass: process.env.SMTP_RELAY_PASS }
+      : undefined,
+    tls: { rejectUnauthorized: false },
+  });
+}
+
 async function sendToMx(mxHost: string, from: string, to: string, rawEmail: Buffer): Promise<void> {
   const transporter = nodemailer.createTransport({
     host: mxHost,
@@ -32,6 +46,11 @@ async function sendToMx(mxHost: string, from: string, to: string, rawEmail: Buff
     secure: false,
     tls: { rejectUnauthorized: false },
   });
+  await transporter.sendMail({ envelope: { from, to }, raw: rawEmail });
+}
+
+async function sendViaRelay(from: string, to: string, rawEmail: Buffer): Promise<void> {
+  const transporter = getRelayTransport()!;
   await transporter.sendMail({ envelope: { from, to }, raw: rawEmail });
 }
 
@@ -92,6 +111,21 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
       continue;
     }
 
+    // Smarthost relay mode — route through configured upstream SMTP
+    if (process.env.SMTP_RELAY_HOST) {
+      try {
+        await sendViaRelay(fromAddress, to, rawEmail);
+        await recordEvent(emailId, 'DELIVERED', { relay: process.env.SMTP_RELAY_HOST, email: to });
+      } catch (err) {
+        const msg = (err as Error).message;
+        logger.warn(`Relay delivery failed for ${to}: ${msg}`);
+        failedRecipients.push(to);
+        await recordEvent(emailId, 'BOUNCED', { reason: 'relay_failed', email: to, error: msg });
+      }
+      continue;
+    }
+
+    // Direct MX delivery mode
     const recipientDomain = to.split('@')[1];
     const mxHosts = await resolveMx(recipientDomain);
 
