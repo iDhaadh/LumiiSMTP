@@ -150,13 +150,17 @@ export async function processEmailJobData(data: EmailJobData): Promise<void> {
   }
 
   const failedRecipients: string[] = [];
+  const suppressionDisabled = process.env.DISABLE_SUPPRESSION === 'true';
 
   for (const to of toAddresses) {
-    const suppressed = await isSupressed(userId, to);
-    if (suppressed) {
-      logger.info(`Skipping suppressed address: ${to}`);
-      await recordEvent(emailId, 'BOUNCED', { reason: 'suppressed', email: to });
-      continue;
+    // Unrestricted mode: never skip a recipient for being on the suppression list.
+    if (!suppressionDisabled) {
+      const suppressed = await isSupressed(userId, to);
+      if (suppressed) {
+        logger.info(`Skipping suppressed address: ${to}`);
+        await recordEvent(emailId, 'BOUNCED', { reason: 'suppressed', email: to });
+        continue;
+      }
     }
 
     // Smarthost relay mode — route through configured upstream SMTP

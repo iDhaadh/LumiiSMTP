@@ -11,6 +11,9 @@ function devGet(key: string): number {
 }
 
 export async function checkSendingLimit(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  // Unrestricted mode: skip daily/monthly caps entirely.
+  if (process.env.DISABLE_RATE_LIMIT === 'true') return { allowed: true };
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { dailyLimit: true, monthlyLimit: true },
