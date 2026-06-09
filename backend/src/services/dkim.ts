@@ -53,15 +53,19 @@ export async function signEmailWithDkim(
   try {
     const { dkimSign } = await import('mailauth');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // mailauth's dkimSign expects `signatureData` (NOT `keys`), and each entry
+    // uses `signingDomain` for the d= tag. Passing `keys`/`domain` is silently
+    // ignored — signatureData defaults to [], producing an empty signature with
+    // no error, which is exactly the "len=2" bug we saw.
     const result: any = await dkimSign(rawEmail, {
       canonicalization: 'relaxed/relaxed',
       algorithm: 'rsa-sha256',
       signTime: new Date(),
-      keys: [
+      signatureData: [
         {
-          privateKey: domain.dkimPrivateKey,
+          signingDomain: domain.domain,
           selector: domain.dkimSelector,
-          domain: domain.domain,
+          privateKey: domain.dkimPrivateKey,
         },
       ],
     } as any);
