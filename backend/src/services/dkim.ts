@@ -70,8 +70,14 @@ export async function signEmailWithDkim(
     const sigRaw: string =
       typeof result === 'string' ? result : (result?.signatures ?? '');
 
+    // Diagnostics: surface why a signature is empty (key format / mailauth errors).
+    const keyHeader = (domain.dkimPrivateKey.match(/-----BEGIN [^-]+-----/) ?? ['?'])[0];
+    const errs =
+      result && typeof result === 'object' && Array.isArray((result as any).errors)
+        ? JSON.stringify((result as any).errors)
+        : 'n/a';
     logger.info(
-      `[diag] DKIM sig for ${domain.domain}: len=${sigRaw.length} value=${JSON.stringify(sigRaw.slice(0, 200))}`
+      `[diag] DKIM sig for ${domain.domain}: len=${sigRaw.length} keyHeader="${keyHeader}" errors=${errs} value=${JSON.stringify(sigRaw.slice(0, 200))}`
     );
 
     // CRITICAL: only prepend when we actually have a DKIM-Signature header.
