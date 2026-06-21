@@ -7,7 +7,7 @@
 <style>
 /* ==================== RESET ==================== */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; overflow: hidden; }
+html, body { width: 100%; height: 100%; height: 100dvh; overflow: hidden; }
 button, input, select { font-family: inherit; }
 
 /* ==================== BASE ==================== */
@@ -813,6 +813,208 @@ body.wx-storm   #bg-overlay { background: rgba(8,12,28,0.72); }
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+
+/* ==================== RESPONSIVE ==================== */
+
+/* --- Tablet (900px) --- */
+@media (max-width: 900px) {
+  #sidebar { width: 84px; padding: 14px 6px; border-radius: 36px; }
+  .nav-item { font-size: 9.5px; padding: 9px 4px; }
+  .nav-item .nav-icon { font-size: 19px; }
+  .home-right { width: 290px; }
+  .home-greeting { font-size: 46px; }
+  .h-temp { font-size: 28px; }
+  .h-time { font-size: 17px; }
+  .h-weather-icon { font-size: 38px; }
+  .room-card { padding: 20px 18px 16px; }
+  .room-title { font-size: 30px; }
+  .knob-svg { width: 140px; height: 140px; }
+  .sound-list { width: 160px; }
+  .api-cols { gap: 16px; }
+}
+
+/* --- Large mobile / small tablet (680px) --- */
+@media (max-width: 680px) {
+  #app { padding: 10px 10px 10px 8px; gap: 10px; }
+  #sidebar { width: 72px; padding: 12px 4px; border-radius: 30px; }
+  .nav-item { font-size: 8.5px; padding: 8px 2px; gap: 4px; }
+  .nav-item .nav-icon { font-size: 17px; }
+  .home-right { width: 250px; }
+  .home-greeting { font-size: 36px; letter-spacing: -1px; }
+  .home-sub { font-size: 13px; }
+  .h-temp { font-size: 24px; }
+  .h-time { font-size: 15px; }
+  .h-weather-icon { font-size: 32px; }
+  .tab-bar { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: 0 0 auto; font-size: 12px; padding: 7px 12px; }
+  .room-title { font-size: 24px; }
+  .v-track { height: 170px; width: 46px; }
+  .knob-svg { width: 116px; height: 116px; }
+  .sound-list { width: 140px; }
+  .sound-btn { font-size: 12px; padding: 9px 10px; }
+  .api-cols { grid-template-columns: 1fr; }
+}
+
+/* --- Mobile portrait (< 540px) --- */
+@media (max-width: 540px) {
+  html, body { overflow: hidden; }
+
+  #app {
+    flex-direction: column-reverse;
+    padding: 0;
+    gap: 0;
+    height: 100%;
+    height: 100dvh;
+  }
+
+  /* Sidebar → bottom tab bar */
+  #sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    overflow-x: auto;
+    gap: 0;
+    background: rgba(22,20,16,0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  .nav-item {
+    flex: 1; min-width: 52px; max-width: 80px;
+    border-radius: 12px; padding: 6px 2px;
+    font-size: 8px; gap: 3px;
+  }
+  .nav-item .nav-icon { font-size: 18px; }
+  .nav-spacer { display: none; }
+
+  /* Main area fills above sidebar */
+  #main {
+    flex: 1;
+    min-height: 0;
+    padding: 0;
+  }
+
+  /* Pages fill main and scroll if needed */
+  .page {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Home: vertical stack */
+  #page-home {
+    flex-direction: column;
+    padding: 16px 14px 12px;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .home-left {
+    flex: none;
+    padding: 0;
+    order: 1;
+  }
+  .home-greeting { font-size: 38px; letter-spacing: -1px; }
+  .home-sub { font-size: 13px; margin-top: 6px; }
+
+  .home-right {
+    width: 100%;
+    order: 2;
+    gap: 8px;
+  }
+  .home-logo {
+    position: static;
+    text-align: right;
+    margin-bottom: 4px;
+  }
+
+  /* Cards full width on mobile */
+  .h-card { padding: 12px 14px; }
+  .h-temp { font-size: 26px; }
+  .h-time { font-size: 16px; }
+  .h-weather-icon { font-size: 36px; }
+
+  /* Room page */
+  #page-room { padding: 0; }
+  .room-card {
+    border-radius: 0;
+    padding: 14px 14px 10px;
+    border-left: none; border-right: none; border-top: none;
+  }
+  .room-title { font-size: 26px; }
+  .room-name { font-size: 10px; letter-spacing: 2px; margin-top: 2px; }
+
+  /* Tab bar scrollable */
+  .tab-bar {
+    gap: 2px; padding: 3px; margin: 10px 0 12px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-radius: 22px; flex-shrink: 0;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: 0 0 auto; font-size: 12px; padding: 7px 12px; border-radius: 20px; }
+
+  /* Lighting */
+  .sliders-wrap { gap: 10px; }
+  .v-track { height: 150px; width: 44px; }
+  .bulb-btn { width: 38px; height: 38px; font-size: 16px; }
+  .s-label { font-size: 9.5px; }
+  .mood-btn { padding: 12px 8px; gap: 6px; border-radius: 14px; }
+  .mood-icon { font-size: 24px; }
+  .mood-label { font-size: 11px; }
+
+  /* Sound */
+  .tab-panel#panel-sound { flex-direction: column; gap: 14px; }
+  .knobs-wrap { gap: 24px; flex: none; justify-content: center; padding: 4px 0; }
+  .knob-svg { width: 120px; height: 120px; }
+  .sound-list { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .sound-btn { flex: 1; min-width: calc(50% - 6px); font-size: 12px; padding: 9px 10px; }
+
+  /* Curtain */
+  .curtain-zones { gap: 8px; }
+  .curtain-vis { font-size: 36px; }
+  .curtain-zone { padding: 12px 10px; }
+  .curtain-zone-name { font-size: 11px; }
+  .c-btn { font-size: 11px; padding: 7px; }
+
+  /* Climate */
+  .climate-card { padding: 18px 20px; min-width: unset; width: 100%; }
+  .temp-num { font-size: 56px; }
+  .temp-unit-badge { font-size: 20px; }
+  .temp-arrow { width: 36px; height: 36px; font-size: 14px; }
+
+  /* Fan */
+  .fan-emoji { font-size: 70px; }
+  .f-speed { width: 38px; height: 38px; font-size: 12px; }
+
+  /* TV */
+  .tv-wrap { gap: 12px; }
+  .tv-btn { width: 46px; height: 46px; font-size: 15px; border-radius: 11px; }
+  .tv-input { padding: 9px 12px; font-size: 12px; }
+
+  /* API page */
+  .api-card { padding: 16px 14px 24px; }
+  .api-head h1 { font-size: 24px; }
+  .api-cols { grid-template-columns: 1fr; gap: 14px; }
+  .custom-api-form { grid-template-columns: 1fr 1fr; }
+  .custom-api-form .url-field { grid-column: 1 / -1; }
+  .custom-api-form .add-btn-wrap { grid-column: 1 / -1; }
+  .entry-main { flex-wrap: wrap; gap: 8px; }
+  .entry-url { width: 100%; flex: none; }
+}
+
+/* --- Very small screens (< 380px) --- */
+@media (max-width: 380px) {
+  #app { padding: 0; }
+  .home-greeting { font-size: 30px; }
+  .tab-btn { font-size: 11px; padding: 6px 10px; }
+  .v-track { height: 130px; width: 40px; }
+  .knob-svg { width: 100px; height: 100px; }
+  .tv-btn { width: 40px; height: 40px; font-size: 13px; }
+}
 </style>
 </head>
 <body>
