@@ -47,6 +47,12 @@ function sendRaw(
       host: opts.host,
       port: opts.port,
       secure: opts.secure,
+      // Announce ourselves with a real FQDN in EHLO/HELO. Without this,
+      // smtp-connection falls back to the OS hostname (a random Docker
+      // container id), which receiving servers penalise and which undermines
+      // blocklist delisting. Set SMTP_HELO_NAME to a hostname that has a
+      // matching forward + reverse DNS (FCrDNS) for the sending IP.
+      name: process.env.SMTP_HELO_NAME || undefined,
       tls: { rejectUnauthorized: false },
       logger: false,
       debug: false,

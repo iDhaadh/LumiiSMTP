@@ -72,6 +72,7 @@ services:
       TRACKING_DOMAIN: ${TRACKING_DOMAIN}
       DISABLE_RATE_LIMIT: ${DISABLE_RATE_LIMIT:-true}
       DISABLE_SUPPRESSION: ${DISABLE_SUPPRESSION:-true}
+      SMTP_HELO_NAME: ${SMTP_HELO_NAME:-smtp.madifushiprivateisland.com}
     depends_on:
       postgres:
         condition: service_healthy
